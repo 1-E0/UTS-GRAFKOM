@@ -1,0 +1,282 @@
+    <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Greenpath — The Encounter</title>
+    <style>
+        * { box-sizing: border-box; }
+        html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+            background: #10131d;
+            color: #f2efe9;
+            font-family: Georgia, "Times New Roman", serif;
+        }
+        iframe {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            border: 0;
+        }
+        .vignette {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background: linear-gradient(180deg, rgba(7, 10, 16, .2), transparent 25%, transparent 58%, rgba(7, 10, 16, .68));
+        }
+        .letterbox {
+            position: absolute;
+            z-index: 2;
+            left: 0;
+            width: 100%;
+            height: 3.4%;
+            background: rgba(8, 10, 16, .86);
+            pointer-events: none;
+        }
+        .letterbox.top { top: 0; }
+        .letterbox.bottom { bottom: 0; }
+        .timeline {
+            position: absolute;
+            z-index: 5;
+            bottom: 4.5%;
+            left: 3%;
+            width: min(44%, 440px);
+            padding: 10px 14px;
+            border: 1px solid rgba(255,255,255,.14);
+            border-radius: 8px;
+            background: rgba(8, 11, 18, .72);
+            backdrop-filter: blur(8px);
+            font: 12px Arial, sans-serif;
+        }
+        .timeline-label {
+            display: block;
+            margin-bottom: 7px;
+            color: #f2efe9;
+            font-variant-numeric: tabular-nums;
+        }
+        .timeline-track {
+            position: relative;
+            height: 5px;
+            overflow: hidden;
+            border-radius: 999px;
+            background: rgba(255,255,255,.22);
+        }
+        .timeline-progress {
+            width: 0;
+            height: 100%;
+            border-radius: inherit;
+            background: #cdbb8b;
+        }
+        .timeline-seek {
+            position: absolute;
+            inset: -7px 0;
+            width: 100%;
+            height: 19px;
+            margin: 0;
+            appearance: none;
+            background: transparent;
+            cursor: pointer;
+        }
+        .timeline-seek::-webkit-slider-runnable-track { height: 5px; background: transparent; }
+        .timeline-seek::-webkit-slider-thumb {
+            width: 13px;
+            height: 13px;
+            margin-top: -4px;
+            border: 2px solid #f2efe9;
+            border-radius: 50%;
+            background: #cdbb8b;
+            appearance: none;
+        }
+        .timeline-seek::-moz-range-track { height: 5px; background: transparent; }
+        .timeline-seek::-moz-range-thumb {
+            width: 9px;
+            height: 9px;
+            border: 2px solid #f2efe9;
+            border-radius: 50%;
+            background: #cdbb8b;
+        }
+        .scene-text {
+            position: absolute;
+            z-index: 3;
+            top: 42%;
+            left: 50%;
+            width: min(88%, 1000px);
+            text-align: center;
+            transform: translate(-50%, -50%);
+            opacity: 0;
+            color: #f2efe9;
+            pointer-events: none;
+            text-shadow: 0 3px 20px rgba(0, 0, 0, .95);
+        }
+        #title {
+            font-size: clamp(42px, 8vw, 90px);
+            font-weight: 400;
+            letter-spacing: .18em;
+        }
+        #subtitle {
+            top: auto;
+            bottom: 16%;
+            transform: translateX(-50%);
+            width: max-content;
+            max-width: 90%;
+            padding: 8px 20px;
+            border-radius: 4px;
+            background: rgba(8, 11, 18, .68);
+            font-size: clamp(18px, 2.2vw, 28px);
+            line-height: 1.4;
+        }
+        .controls {
+            position: absolute;
+            z-index: 5;
+            right: 3%;
+            bottom: 4.5%;
+            padding: 12px 16px;
+            border: 1px solid rgba(255,255,255,.14);
+            border-radius: 8px;
+            background: rgba(8, 11, 18, .72);
+            backdrop-filter: blur(8px);
+            font: 12px Arial, sans-serif;
+            transition: opacity .3s ease;
+        }
+        .controls button {
+            padding: 8px 12px;
+            border: 1px solid rgba(255,255,255,.25);
+            border-radius: 5px;
+            background: rgba(255,255,255,.08);
+            color: #f2efe9;
+            cursor: pointer;
+        }
+        .controls button:hover { background: rgba(255,255,255,.18); }
+        .controls.hidden { opacity: 0; pointer-events: none; }
+        .hint {
+            position: absolute;
+            z-index: 4;
+            top: 4.5%;
+            right: 3%;
+            color: rgba(255,255,255,.68);
+            font: 11px/1.5 Arial, sans-serif;
+            letter-spacing: .06em;
+            text-shadow: 0 1px 5px #000;
+            transition: opacity .3s ease;
+        }
+        .hint.hidden { opacity: 0; }
+        @media (max-width: 560px) {
+            .timeline { width: 48%; padding: 8px 10px; }
+        }
+    </style>
+</head>
+<body>
+    <iframe id="hallownest" src="environment/hallownest/index.html?trailer" title="A story in Greenpath"></iframe>
+    <div class="vignette"></div>
+    <div class="letterbox top"></div>
+    <div class="letterbox bottom"></div>
+    <div class="timeline" aria-label="Trailer timeline">
+        <span class="timeline-label" id="time-label">00:00 / 01:05</span>
+        <div class="timeline-track">
+            <div class="timeline-progress" id="timeline-progress"></div>
+            <input class="timeline-seek" id="timeline-seek" type="range" min="0" max="65" step="0.1" value="0" aria-label="Seek trailer timeline">
+        </div>
+    </div>
+    <div class="scene-text" id="title">The Dungeon</div>
+    <div class="scene-text" id="subtitle">Something is not right</div>
+
+    <div class="hint" id="hint">Drag the scene to change camera angle · H hides the UI</div>
+    <div class="controls" id="controls">
+        <button id="auto-camera">Reset camera</button>
+    </div>
+
+    <script>
+        const frame = document.getElementById("hallownest");
+        const controls = document.getElementById("controls");
+        const hint = document.getElementById("hint");
+        const autoCameraButton = document.getElementById("auto-camera");
+        const title = document.getElementById("title");
+        const subtitle = document.getElementById("subtitle");
+        const timeLabel = document.getElementById("time-label");
+        const timelineProgress = document.getElementById("timeline-progress");
+        const timelineSeek = document.getElementById("timeline-seek");
+        let ready = false;
+        let startTime = null;
+        let elapsed = 0;
+        let lastFrame = 0;
+
+        function sendControl(data = {}) {
+            if (!ready) return;
+            frame.contentWindow.postMessage({
+                type: "hallownest-trailer",
+                ...data
+            }, "*");
+        }
+
+        function smoothstep(value) {
+            const t = Math.max(0, Math.min(1, value));
+            return t * t * (3 - 2 * t);
+        }
+
+        function formatTime(seconds) {
+            const wholeSeconds = Math.floor(seconds);
+            const minutes = String(Math.floor(wholeSeconds / 60)).padStart(2, "0");
+            const remainder = String(wholeSeconds % 60).padStart(2, "0");
+            return `${minutes}:${remainder}`;
+        }
+
+        function updateTimeline() {
+            timeLabel.textContent = `${formatTime(elapsed)} / 01:05`;
+            timelineProgress.style.width = `${elapsed / 65 * 100}%`;
+            timelineSeek.value = String(elapsed);
+        }
+
+        function update(now) {
+            if (startTime === null) startTime = now;
+            elapsed = Math.min(65, (now - startTime) / 1000);
+            updateTimeline();
+            const titleOpacity = smoothstep((elapsed - 0.3) / 0.7) *
+                (1 - smoothstep((elapsed - 3.1) / 0.9));
+            title.style.opacity = String(titleOpacity);
+            subtitle.style.opacity = String(
+                smoothstep((elapsed - 7) / 0.7) *
+                (1 - smoothstep((elapsed - 10) / 0.8))
+            );
+
+            if (ready && (elapsed < 65 || lastFrame < 65)) {
+                sendControl({ time: elapsed });
+            }
+            lastFrame = elapsed;
+            requestAnimationFrame(update);
+        }
+
+        timelineSeek.addEventListener("input", () => {
+            elapsed = Number(timelineSeek.value);
+            if (startTime !== null) startTime = performance.now() - elapsed * 1000;
+            updateTimeline();
+            sendControl({ time: elapsed });
+        });
+
+        frame.addEventListener("load", () => {
+            ready = true;
+            sendControl({ time: elapsed });
+        });
+        autoCameraButton.addEventListener("click", () => {
+            sendControl({ camera: "director" });
+        });
+        window.addEventListener("message", event => {
+            if (event.source && event.source !== frame.contentWindow) return;
+            if (event.data && event.data.type === "hallownest-trailer-ready") {
+                ready = true;
+                sendControl({ time: elapsed });
+            }
+        });
+        window.addEventListener("keydown", event => {
+            if (event.code === "KeyH") {
+                controls.classList.toggle("hidden");
+                hint.classList.toggle("hidden");
+            }
+        });
+        requestAnimationFrame(update);
+    </script>
+</body>
+</html>
